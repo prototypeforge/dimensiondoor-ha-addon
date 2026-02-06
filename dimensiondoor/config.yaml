@@ -1,0 +1,27 @@
+name: "DimensionDoor Remote Access"
+description: "Connect your Home Assistant to DimensionDoor for secure remote access"
+version: "1.0.5"
+slug: "dimensiondoor"
+url: "https://dimensiondoor.cloud"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+startup: application
+boot: auto
+init: false
+homeassistant_api: true
+map:
+  - config:rw
+options:
+  auth_token: ""
+  server_url: "wss://tunnel.dimensiondoor.cloud/ws/tunnel"
+  ha_url: "http://homeassistant:8123"
+  log_level: "info"
+schema:
+  auth_token: str
+  server_url: url
+  ha_url: url
+  log_level: "list(debug|info|warning|error)"
