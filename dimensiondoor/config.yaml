@@ -1,6 +1,6 @@
 name: "DimensionDoor Remote Access"
 description: "Connect your Home Assistant to DimensionDoor for secure remote access"
-version: "1.0.6"
+version: "1.0.7"
 slug: "dimensiondoor"
 url: "https://dimensiondoor.cloud"
 arch:
