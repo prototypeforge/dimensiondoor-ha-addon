@@ -35,8 +35,23 @@ if [ -z "$AUTH_TOKEN" ]; then
     exit 1
 fi
 
-exec python3 /app/tunnel_client.py \
-    --token "$AUTH_TOKEN" \
-    --server "$SERVER_URL" \
-    --ha-url "$HA_URL" \
-    --log-level "$LOG_LEVEL"
+RESTART_DELAY=30
+
+while true; do
+    set +e
+    python3 /app/tunnel_client.py \
+        --token "$AUTH_TOKEN" \
+        --server "$SERVER_URL" \
+        --ha-url "$HA_URL" \
+        --log-level "$LOG_LEVEL"
+    EXIT_CODE=$?
+    set -e
+
+    if [ $EXIT_CODE -eq 0 ]; then
+        echo "Tunnel client exited cleanly. Stopping."
+        break
+    fi
+
+    echo "Tunnel client exited with code ${EXIT_CODE}. Restarting in ${RESTART_DELAY}s..."
+    sleep "$RESTART_DELAY"
+done

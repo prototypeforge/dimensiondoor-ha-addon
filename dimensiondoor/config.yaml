@@ -11,7 +11,7 @@ arch:
   - i386
 startup: application
 boot: auto
-init: true
+init: false
 homeassistant_api: true
 map:
   - config:rw
