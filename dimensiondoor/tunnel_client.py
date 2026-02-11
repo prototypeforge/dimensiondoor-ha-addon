@@ -22,6 +22,9 @@ import websockets.client
 logger = logging.getLogger("dimensiondoor")
 
 
+MAX_CONSECUTIVE_FAILURES = 5
+
+
 class TunnelClient:
     def __init__(self, token: str, server_url: str, ha_url: str):
         self.token = token
@@ -32,6 +35,7 @@ class TunnelClient:
         self._ws_connections: Dict[str, aiohttp.ClientWebSocketResponse] = {}
         self._running = True
         self._reconnect_delay = 1  # seconds, with exponential backoff
+        self._consecutive_failures = 0
 
     async def start(self):
         """Main entry point - connects and handles reconnection."""
@@ -48,9 +52,25 @@ class TunnelClient:
                 ConnectionRefusedError,
                 OSError,
             ) as e:
-                logger.warning(f"Connection lost: {e}")
+                self._consecutive_failures += 1
+                logger.warning(
+                    f"Connection lost: {e} "
+                    f"(consecutive failures: {self._consecutive_failures}/{MAX_CONSECUTIVE_FAILURES})"
+                )
             except Exception as e:
-                logger.exception(f"Unexpected error: {e}")
+                self._consecutive_failures += 1
+                logger.exception(
+                    f"Unexpected error: {e} "
+                    f"(consecutive failures: {self._consecutive_failures}/{MAX_CONSECUTIVE_FAILURES})"
+                )
+
+            if self._consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                logger.critical(
+                    f"Failed to connect {MAX_CONSECUTIVE_FAILURES} times in a row. "
+                    f"Exiting so watchdog can restart the add-on."
+                )
+                await self._cleanup()
+                sys.exit(1)
 
             if self._running:
                 logger.info(f"Reconnecting in {self._reconnect_delay}s...")
@@ -92,9 +112,11 @@ class TunnelClient:
                         return
                     logger.info(f"Connected! URL: {data.get('url', 'unknown')}")
                     self._reconnect_delay = 1  # Reset backoff only after confirmed success
+                    self._consecutive_failures = 0
                 else:
                     logger.info("Connected to tunnel server")
                     self._reconnect_delay = 1
+                    self._consecutive_failures = 0
 
                 # Process incoming messages
                 async for message in ws:
